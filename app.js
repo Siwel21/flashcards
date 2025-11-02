@@ -5,11 +5,36 @@
 
   // === DATA (puedes ampliar la lista) ===
   const SEED = [
-    { word: "happy", sentence: "My mom is always happy.", emoji: "😊" },
-    { word: "sad", sentence: "She feels sad today.", emoji: "😢" },
-    { word: "boy", sentence: "That boy is my friend.", emoji: "🧒" },
-    { word: "girl", sentence: "That girl is my cousin.", emoji: "👧" },
-    { word: "player", sentence: "He is a soccer player.", emoji: "⚽" },
+    {
+      word: "happy",
+      sentence: "My mom is always happy.",
+      emoji: "😊",
+      gif: "https://media.giphy.com/media/yoJC2GnSClbPOkV0eA/giphy.gif",
+    },
+    {
+      word: "sad",
+      sentence: "She feels sad today.",
+      emoji: "😢",
+      gif: "https://media.giphy.com/media/l0MYu5w9TRoQE5YjK/giphy.gif",
+    },
+    {
+      word: "boy",
+      sentence: "That boy is my friend.",
+      emoji: "🧒",
+      gif: "https://media.giphy.com/media/10LKovKon8DENq/giphy.gif",
+    },
+    {
+      word: "girl",
+      sentence: "That girl is my cousin.",
+      emoji: "👧",
+      gif: "https://media.giphy.com/media/xT0xezQGU5xCDJuCPe/giphy.gif",
+    },
+    {
+      word: "player",
+      sentence: "He is a soccer player.",
+      emoji: "⚽",
+      gif: "https://media.giphy.com/media/l0MYEwCiAkK3UjqQM/giphy.gif",
+    },
   ];
 
   const spell = (w) => w.toUpperCase().split("").join(" – ");
@@ -25,8 +50,7 @@
   const EXT = pickExtension();
 
   function Flashcard(props){
-    const { word, sentence, emoji } = props;
-    const [flipped, setFlipped] = useState(false);
+    const { word, sentence, emoji, gif } = props;
     const audioRef = useRef(null);
     const [src, setSrc] = useState("");
 
@@ -80,23 +104,21 @@
 
     return React.createElement(
       'div',
-      { className: `card ${flipped ? 'is-flipped' : ''}`, onClick: () => setFlipped(f => !f), role:'button', 'aria-label':`Flashcard for ${word}` },
-      React.createElement('div', { className:'card-face card-front' },
-        React.createElement('div', { className:'emoji', 'aria-hidden':true }, emoji),
-        React.createElement('div', { className:'word' }, word),
-        React.createElement('div', { className:'hint' }, 'Toca para ver frase y deletreo')
+      { className: 'card single', role:'group', 'aria-label':`Flashcard for ${word}` },
+      React.createElement('div', { className:'media-area' },
+        gif
+          ? React.createElement('img', { className:'gif', src: gif, alt: `Animación relacionada con ${word}` })
+          : React.createElement('div', { className:'emoji', 'aria-hidden':true }, emoji)
       ),
-      React.createElement('div', { className:'card-face card-back' },
-        React.createElement('div', { className:'sentence' }, sentence),
-        React.createElement('div', { className:'spelling' }, spell(word)),
-        React.createElement('button', { className:'play-btn', onClick: play, 'aria-label':`Reproducir audio de ${word}` }, '🔊 Escuchar'),
-        React.createElement('div', { className:'audiorow' },
-          React.createElement('span', { className:'audiorow-label' }, 'Audio actual: '),
-          React.createElement('code', null, visiblePath.replace(/\?v=\d+$/, "")) // mostramos la ruta limpia
-        ),
-        React.createElement('audio', { ref: audioRef, preload:'auto', onError: onErrorAudio }),
-        React.createElement('div', { className:'hint' }, 'Toca fuera del botón para regresar')
-      )
+      React.createElement('div', { className:'word' }, word),
+      React.createElement('div', { className:'sentence' }, sentence),
+      React.createElement('div', { className:'spelling' }, spell(word)),
+      React.createElement('button', { className:'play-btn', onClick: play, 'aria-label':`Reproducir audio de ${word}` }, '🔊 Escuchar'),
+      React.createElement('div', { className:'audiorow' },
+        React.createElement('span', { className:'audiorow-label' }, 'Audio actual: '),
+        React.createElement('code', null, visiblePath.replace(/\?v=\d+$/, ""))
+      ),
+      React.createElement('audio', { ref: audioRef, preload:'auto', onError: onErrorAudio })
     );
   }
 
@@ -130,21 +152,18 @@
         button:hover { background:#f8fafc; }
         .index { opacity:.65; font-size:12px; text-align:center; margin-top: 8px; }
 
-        .viewer { display:flex; justify-content:center; }
-        .card { width: 360px; height: 490px; position:relative; perspective:1000px; }
-        .card-face { position:absolute; inset:0; border-radius:16px; border:1px solid #e2e8f0; box-shadow: 0 8px 30px rgba(2,6,23,.1); display:grid; place-items:center; padding:24px; backface-visibility:hidden; background:#fff; text-align:center; }
-        .card-front .emoji { font-size:64px; }
-        .card-front .word { font-size:28px; font-weight:800; letter-spacing:.02em; }
-        .hint { font-size:12px; opacity:.6; }
-        .card-back { transform: rotateY(180deg); gap:12px; padding-top: 16px; }
+        .viewer { display:flex; justify-content:center; padding: 12px 0; }
+        .card.single { width: min(90vw, 420px); border-radius:16px; border:1px solid #e2e8f0; box-shadow: 0 8px 30px rgba(2,6,23,.1); background:#fff; padding:28px 24px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:16px; }
+        .media-area { width: 100%; display:flex; justify-content:center; }
+        .gif { width: 100%; max-width: 260px; border-radius: 12px; object-fit: cover; box-shadow: 0 6px 20px rgba(15,23,42,.15); }
+        .emoji { font-size: 80px; }
+        .word { font-size:32px; font-weight:800; letter-spacing:.02em; }
         .sentence { font-size:18px; opacity:.85; }
         .spelling { font-size:20px; font-weight:800; letter-spacing:.25em; }
-        .play-btn { margin-top: 6px; font-size:14px; display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:9999px; border:1px solid #cbd5e1; background:#f8fafc; }
+        .play-btn { font-size:14px; display:inline-flex; align-items:center; gap:8px; padding:10px 16px; border-radius:9999px; border:1px solid #cbd5e1; background:#f8fafc; }
         .play-btn:hover { background:#eef2f7; }
-        .audiorow { font-size: 12px; opacity: .8; margin-top: 6px; }
+        .audiorow { font-size: 12px; opacity: .8; }
         .audiorow code { font-size: 12px; }
-        .card.is-flipped .card-front { transform: rotateY(180deg); }
-        .card.is-flipped .card-back { transform: rotateY(360deg); }
 
         @media print {
           @page { size: letter portrait; margin: 0.5in; }
