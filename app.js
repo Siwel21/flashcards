@@ -1,4 +1,5 @@
 // UMD-friendly version (no imports). Works on GitHub Pages with React/ReactDOM UMD scripts.
+// FIX: audio now updates per word, and replays correctly on each card.
 (function(){
   const { useState, useEffect, useRef } = React;
 
@@ -113,10 +114,40 @@
     const [flipped, setFlipped] = useState(false);
     const audioRef = useRef(null);
 
+    // Choose url by support; default to mp3
+    const pickUrl = (w) => {
+      const a = document.createElement('audio');
+      const stem = fileStem(w);
+      if (a.canPlayType('audio/mpeg')) return `audio/${stem}.mp3`;
+      if (a.canPlayType('audio/mp4')) return `audio/${stem}.m4a`;
+      return `audio/${stem}.wav`;
+    };
+
+    // Update audio whenever word changes
+    useEffect(() => {
+      if (!audioRef.current) return;
+      const url = pickUrl(word);
+      audioRef.current.src = url;
+      audioRef.current.load();
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }, [word]);
+
     const play = async (e) => {
       e.stopPropagation();
-      try { await audioRef.current?.play(); } catch(err){
-        alert("No se pudo reproducir el audio. Verifica audio/"+fileStem(word)+".mp3");
+      try {
+        if (!audioRef.current) return;
+        // Ensure correct URL at play time
+        const shouldUrl = pickUrl(word);
+        if (!audioRef.current.src.endsWith(shouldUrl)) {
+          audioRef.current.src = shouldUrl;
+          audioRef.current.load();
+        } else {
+          audioRef.current.currentTime = 0;
+        }
+        await audioRef.current.play();
+      } catch (err) {
+        alert("No se pudo reproducir el audio. Verifica /audio/<palabra>.mp3 y permisos de sonido.");
         console.warn(err);
       }
     };
@@ -133,11 +164,8 @@
         React.createElement('div', { className:'sentence' }, sentence),
         React.createElement('div', { className:'spelling' }, spell(word)),
         React.createElement('button', { className:'play-btn', onClick: play, 'aria-label':`Reproducir audio de ${word}` }, '🔊 Escuchar'),
-        React.createElement('audio', { ref: audioRef, preload:'none' },
-          React.createElement('source', { src: `audio/${fileStem(word)}.mp3`, type:'audio/mpeg' }),
-          React.createElement('source', { src: `audio/${fileStem(word)}.m4a`, type:'audio/mp4' }),
-          React.createElement('source', { src: `audio/${fileStem(word)}.wav`, type:'audio/wav' }),
-        ),
+        // Audio without <source> children so we control .src programmatically
+        React.createElement('audio', { ref: audioRef, preload:'auto' }),
         React.createElement('div', { className:'hint' }, 'Toca fuera del botón para regresar')
       )
     );
