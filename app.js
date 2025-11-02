@@ -140,7 +140,6 @@
       audioRef.current.src = u;
       audioRef.current.load();
       audioRef.current.currentTime = 0;
-      console.log("[Audio] set src:", u);
     }, [word]);
 
     function onErrorAudio(e){
@@ -266,7 +265,7 @@
         )
       ),
       React.createElement('div', { className:'print-stack', style: { display:'none' } },
-        (current ? [current] : []).map((c, i) => React.createElement(PrintCard, { ...c, key: `p-${i}-${c.word}` }))
+        cards.map((c, i) => React.createElement(PrintCard, { ...c, key: `p-${i}-${c.word}` }))
       )
     );
   }
