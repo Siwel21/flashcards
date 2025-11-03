@@ -120,7 +120,7 @@
   const EXT = pickExtension();
 
   function Flashcard(props){
-    const { word, sentence, emoji } = props;
+    const { word, sentence, emoji, onPrev = () => {}, onNext = () => {} } = props;
     const audioRef = useRef(null);
     const [src, setSrc] = useState("");
 
@@ -168,9 +168,6 @@
       }
     };
 
-    // Texto visible (sin toggle) con la ruta (sin el dominio)
-    const visiblePath = (src || "").replace(location.origin, "");
-
     return React.createElement(
       'div',
       { className: 'card single', role:'group', 'aria-label':`Flashcard for ${word}` },
@@ -181,11 +178,11 @@
       React.createElement('div', { className:'sentence' }, sentence),
       React.createElement('div', { className:'spelling' }, spell(word)),
       React.createElement('button', { className:'play-btn', onClick: play, 'aria-label':`Reproducir audio de ${word}` }, '🔊 Escuchar'),
-      React.createElement('div', { className:'audiorow' },
-        React.createElement('span', { className:'audiorow-label' }, 'Audio actual: '),
-        React.createElement('code', null, visiblePath.replace(/\?v=\d+$/, ""))
-      ),
-      React.createElement('audio', { ref: audioRef, preload:'auto', onError: onErrorAudio })
+      React.createElement('audio', { ref: audioRef, preload:'auto', onError: onErrorAudio }),
+      React.createElement('div', { className:'card-nav' },
+        React.createElement('button', { className:'nav-btn', onClick: onPrev, type:'button' }, '⟵ Anterior'),
+        React.createElement('button', { className:'nav-btn', onClick: onNext, type:'button' }, 'Siguiente ⟶')
+      )
     );
   }
 
@@ -211,16 +208,24 @@
         :root { color-scheme: light dark; }
         body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
         .app { min-height: 100vh; background: linear-gradient(to bottom, #f8fafc, #ffffff); color: #0f172a; }
-        .container { max-width: 920px; margin: 0 auto; padding: 24px; }
-        .bar { display:flex; gap:8px; align-items:center; justify-content:space-between; margin-bottom: 16px; }
+        .container { max-width: 960px; margin: 0 auto; padding: 24px; }
+        .bar { display:flex; gap:8px; align-items:center; justify-content:space-between; margin-bottom: 24px; }
         .title { font-size: 20px; font-weight: 700; }
         .btns { display:flex; gap:8px; }
         button { appearance:none; border:1px solid #cbd5e1; background:#fff; padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:600; }
         button:hover { background:#f8fafc; }
+        .layout { display:flex; gap:24px; align-items:flex-start; }
+        .sidebar { width: 160px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:12px; position:sticky; top:24px; }
+        .sidebar-title { font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#475569; }
+        .jump-list { display:flex; flex-direction:column; gap:8px; }
+        .jump-btn { appearance:none; border:1px solid #cbd5e1; background:#fff; padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:600; font-size:13px; transition:background .2s, transform .2s; }
+        .jump-btn:hover { background:#e2e8f0; transform:translateY(-1px); }
+        .jump-btn.active { background:#0ea5e9; border-color:#0284c7; color:#fff; box-shadow:0 4px 12px rgba(14,165,233,.35); }
+        .main { flex:1; display:flex; flex-direction:column; gap:12px; }
         .index { opacity:.65; font-size:12px; text-align:center; margin-top: 8px; }
 
         .viewer { display:flex; justify-content:center; padding: 12px 0; }
-        .card.single { width: min(90vw, 420px); border-radius:16px; border:1px solid #e2e8f0; box-shadow: 0 8px 30px rgba(2,6,23,.1); background:#fff; padding:28px 24px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:16px; }
+        .card.single { width: min(90vw, 420px); border-radius:16px; border:1px solid #e2e8f0; box-shadow: 0 8px 30px rgba(2,6,23,.1); background:#fff; padding:28px 24px 32px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:16px; }
         .media-area { width: 100%; display:flex; justify-content:center; }
         .emoji { font-size: 80px; }
         .word { font-size:32px; font-weight:800; letter-spacing:.02em; }
@@ -228,8 +233,16 @@
         .spelling { font-size:20px; font-weight:800; letter-spacing:.25em; }
         .play-btn { font-size:14px; display:inline-flex; align-items:center; gap:8px; padding:10px 16px; border-radius:9999px; border:1px solid #cbd5e1; background:#f8fafc; }
         .play-btn:hover { background:#eef2f7; }
-        .audiorow { font-size: 12px; opacity: .8; }
-        .audiorow code { font-size: 12px; }
+        .card-nav { margin-top:auto; display:flex; gap:12px; justify-content:center; }
+        .nav-btn { appearance:none; border:1px solid #cbd5e1; background:#fff; padding:10px 18px; border-radius:9999px; cursor:pointer; font-weight:600; transition:background .2s, transform .2s; }
+        .nav-btn:hover { background:#f1f5f9; transform:translateY(-1px); }
+
+        @media (max-width: 900px) {
+          .layout { flex-direction:column; }
+          .sidebar { width: 100%; flex-direction:row; flex-wrap:wrap; justify-content:center; position:static; }
+          .sidebar-title { width:100%; text-align:center; }
+          .jump-list { flex-direction:row; flex-wrap:wrap; justify-content:center; }
+        }
 
         @media print {
           @page { size: letter portrait; margin: 0.5in; }
@@ -248,6 +261,7 @@
     }, []);
 
     const current = cards[idx] || cards[0];
+    const jumpTargets = [0, 9, 19, 29, 39, 49, 59, 69, 79, 89].filter((n) => n < cards.length);
 
     return React.createElement('div', { className:'app' },
       React.createElement('div', { className:'screen' },
@@ -255,13 +269,30 @@
           React.createElement('div', { className:'bar' },
             React.createElement('div', { className:'title' }, 'Flashcards – 1st Grade Spelling'),
             React.createElement('div', { className:'btns' },
-              React.createElement('button', { onClick: () => setIdx(i => (i - 1 + cards.length) % cards.length) }, '⟵ Anterior'),
-              React.createElement('button', { onClick: () => setIdx(i => (i + 1) % cards.length) }, 'Siguiente ⟶'),
               React.createElement('button', { onClick: () => window.print() }, '🖨️ Imprimir')
             )
           ),
-          React.createElement('div', { className:'viewer' }, React.createElement(Flashcard, current)),
-          React.createElement('div', { className:'index' }, `${idx + 1} / ${cards.length}`)
+          React.createElement('div', { className:'layout' },
+            React.createElement('nav', { className:'sidebar', 'aria-label':'Índice de palabras' },
+              React.createElement('div', { className:'sidebar-title' }, 'Ir a la palabra'),
+              React.createElement('div', { className:'jump-list' },
+                jumpTargets.map((n) => React.createElement('button', {
+                  key: `jump-${n}`,
+                  className: `jump-btn${idx === n ? ' active' : ''}`,
+                  onClick: () => setIdx(n),
+                  type: 'button'
+                }, `#${n + 1}`))
+              )
+            ),
+            React.createElement('div', { className:'main' },
+              React.createElement('div', { className:'viewer' }, React.createElement(Flashcard, {
+                ...current,
+                onPrev: () => setIdx(i => (i - 1 + cards.length) % cards.length),
+                onNext: () => setIdx(i => (i + 1) % cards.length)
+              })),
+              React.createElement('div', { className:'index' }, `${idx + 1} / ${cards.length}`)
+            )
+          )
         )
       ),
       React.createElement('div', { className:'print-stack', style: { display:'none' } },
